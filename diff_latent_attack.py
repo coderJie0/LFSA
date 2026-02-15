@@ -227,43 +227,15 @@ from styleaug import StyleAugmentor
 
 import torch.nn.functional as F
 from torchvision import transforms as T
-def STM(images, gamma=0.01): 
-    """
-    The attack algorithm of our proposed Style Transfer Method
-    :param images: the input images
-    :param gt: ground-truth
-    :param model: substitute model
-    :param mix: the mix the clip operation 
-    :param max: the max the clip operation
-    :return: the adversarial images
-    """
-    B, C, H, W = images.size()
-    x = images.clone()
-    x = x.cuda()
-    
-    # create style augmentor:
-    augmentor = StyleAugmentor()
-    x_aug = augmentor(x)
-    # vutils.save_image(x_aug, './x_sty.png', nrow=5)
-
-    x_aug = (1-gamma)*x + gamma*x_aug
-    # vutils.save_image(x_aug, './x_aug.png', nrow=5)
-    return tensor_to_pil(x_aug)
+from stm import STM
 def tensor_to_pil(tensor):
-    """
-    将4D或3D张量转换为PIL图像
-    :param tensor: 4D(Batch x C x H x W)或3D(C x H x W)张量
-    :return: PIL.Image对象
-    """
     if tensor.ndim == 4:
-        # 处理Batch数据，取第一个样本
-        tensor = tensor[0]  # 取第1个样本
+        tensor = tensor[0]  
     if tensor.ndim == 3:
-        # 转换为PIL图像
         pil_image = ToPILImage()(tensor)
         return pil_image
     else:
-        raise ValueError("输入张量必须为3D或4D")
+        raise ValueError("error")
 
 
 @torch.enable_grad()
@@ -303,7 +275,6 @@ def diffattack(
 
     height = width = res
 
-    # local_image = gradcam_and_crop(image)
 
     test_image = image.resize((height, height), resample=Image.LANCZOS)
     test_image = np.float32(test_image) / 255.0
@@ -325,7 +296,7 @@ def diffattack(
 
     _, pred_labels = pred.topk(topN, largest=True, sorted=True)
 
-    target_prompt = " ".join([imagenet_label.refined_Label[label.item()] for i in range(1, topN)]) # 为空
+    target_prompt = " ".join([imagenet_label.refined_Label[label.item()] for i in range(1, topN)]) 
     prompt = [imagenet_label.refined_Label[label.item()] + " " + target_prompt] * 2
     print("prompt generate: ", prompt[0], "\tlabels: ", pred_labels.cpu().numpy().tolist())
 
@@ -336,7 +307,6 @@ def diffattack(
     """
             ==========================================
             ============ DDIM Inversion ==============
-            === Details please refer to Appendix B ===
             ==========================================
     """
     # 1
@@ -349,8 +319,8 @@ def diffattack(
                                                     prompt, model,
                                                     num_inference_steps,
                                                     0, res=height) # 0、1，2，3.。。
-    inversion_latents = inversion_latents[::-1] # 颠倒顺序   19、18、17、16。。
-    aug_inversion_latents = aug_inversion_latents[::-1] # 颠倒顺序   19、18、17、16。。
+    inversion_latents = inversion_latents[::-1] 
+    aug_inversion_latents = aug_inversion_latents[::-1]
 
     init_prompt = [prompt[0]]
     batch_size = len(init_prompt)
@@ -360,7 +330,6 @@ def diffattack(
     """
             ===============================================================================
             === Good initial reconstruction by optimizing the unconditional embeddings ====
-            ======================= Details please refer to Section 3.4 ===================
             ===============================================================================
     """
     max_length = 77
@@ -414,7 +383,6 @@ def diffattack(
     """
             ==========================================
             ============ Latents Attack ==============
-            ==== Details please refer to Section 3 ===
             ==========================================
     """
 
@@ -444,7 +412,7 @@ def diffattack(
 
     # optimizer = optim.AdamW([latent], lr=1e-2)
     
-    # 初始化可学习扰动（每步独立）
+    # 
     perturbations = [torch.zeros_like(latent, requires_grad=True) for _ in model.scheduler.timesteps[1 + start_step - 1:]]
     optimizer = optim.AdamW([latent, *perturbations], lr=1e-2)
 
@@ -452,7 +420,7 @@ def diffattack(
     cross_entro = torch.nn.CrossEntropyLoss()
     init_image = preprocess(image, res)
 
-    #  “Pseudo” Mask for better Imperceptibility, yet sacrifice the transferability. Details please refer to Appendix D.
+    #  “Pseudo” Mask for better Imperceptibility, yet sacrifice the transferability. 
     apply_mask = args.is_apply_mask
     hard_mask = args.is_hard_mask
     if apply_mask:
@@ -477,9 +445,7 @@ def diffattack(
             
             latents += args.pertur_weight * perturbations[ind] 
 
-        # 检查perturbations是否更新
         # for i, perturb in enumerate(perturbations):
-        #     print(f"第{iter}次迭代")
         #     print(len(perturbations))
         #     print(perturbations[0])
         #     if perturb.grad is not None and torch.norm(perturb.grad) > 1e-6:
@@ -519,19 +485,13 @@ def diffattack(
 
         attack_loss = - cross_entro(pred, label) * args.attack_loss_weight
 
-        # “Deceive” Strong Diffusion Model. Details please refer to Section 3.3
         variance_cross_attn_loss = after_true_label_attention_map.var() * args.cross_attn_loss_weight
 
-        # Preserve Content Structure. Details please refer to Section 3.4
         # print(iter)
         self_attn_loss = controller.loss * args.self_attn_loss_weight * (1+ (iter+1)/iterations)
         # self_attn_loss = controller.loss * args.self_attn_loss_weight             # original loss strategy
 
-        # + diff_loss * 100
         loss = self_attn_loss + attack_loss + variance_cross_attn_loss 
-        # loss = attack_loss
-        # loss = attack_loss + variance_cross_attn_loss 
-        # loss = self_attn_loss + attack_loss  
 
         if verbose:
             pbar.set_postfix_str(
@@ -561,7 +521,7 @@ def diffattack(
             latents = diffusion_step(model, latents, context[ind], t, guidance_scale)
             aug_latents = diffusion_step(model, aug_latents, context[ind], t, guidance_scale)
             p = random.random()
-            if p <= args.p: # p=0.0  0.2 0.4 0.6 0.8 1.0
+            if p <= args.p: #
                 latents = latents + args.beta*aug_latents 
             
             latents += args.pertur_weight * perturbations[ind] 
