@@ -15,17 +15,12 @@ import csv
 # from utils import load_ground_truth
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--save_dir', default="result/ImageNet/消融实验/参数消融/attack_loss_weight/attack_loss_weight=1", type=str,
+parser.add_argument('--save_dir', default="", type=str,
                     help='Where to save the adversarial examples, and other results')
 
-# 默认的LFSA设置
 parser.add_argument('--p', default=0.2, type=float, help='')
 parser.add_argument('--beta', default=0.1, type=float, help='')
 parser.add_argument('--pertur_weight', default=0.15, type=float, help='')
-
-# parser.add_argument('--p', default=0.2, type=float, help='')
-# parser.add_argument('--beta', default=0.1, type=float, help='') ##############
-# parser.add_argument('--pertur_weight', default=0.9, type=float, help='')
 
 parser.add_argument('--images_root', default="dataset/imagenet-compatible/images", type=str,  help='The clean images root directory')
 # parser.add_argument('--images_root', default="dataset/CUB_200_2011/images", type=str,  help='The clean images root directory')
@@ -46,20 +41,6 @@ parser.add_argument('--iterations', default=30, type=int, help='Iterations of op
 parser.add_argument('--res', default=224, type=int, help='Input image resized resolution')
 
 parser.add_argument('--model_name', default="resnet", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="vgg", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="mobile", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="inception", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="convnext", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="swin", type=str, help='The surrogate model from which the adversarial examples are crafted')
-
-
-# parser.add_argument('--model_name', default="cubResnet50", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="cubSEResnet154", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="cubSEResnet101", type=str, help='The surrogate model from which the adversarial examples are crafted')
-
-# parser.add_argument('--model_name', default="carResnet50", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="carSEResnet154", type=str, help='The surrogate model from which the adversarial examples are crafted')
-# parser.add_argument('--model_name', default="carSEResnet101", type=str, help='The surrogate model from which the adversarial examples are crafted')
 
 
 parser.add_argument('--dataset_name', default="imagenet_compatible", type=str, choices=["imagenet_compatible", "cub_200_2011", "standford_car"], help='The dataset name for generating adversarial examples')
@@ -68,17 +49,6 @@ parser.add_argument('--dataset_name', default="imagenet_compatible", type=str, c
 
 parser.add_argument('--is_apply_mask', default=False, type=bool, help='Whether to leverage pseudo mask for better imperceptibility (See Appendix D)')
 parser.add_argument('--is_hard_mask', default=False, type=bool, help='Which type of mask to leverage (See Appendix D)')
-
-# parser.add_argument('--guidance', default=2.5, type=float, help='guidance scale of diffusion models')
-# parser.add_argument('--attack_loss_weight', default=10, type=int, help='attack loss weight factor')
-# parser.add_argument('--cross_attn_loss_weight', default=10000, type=int, help='cross attention loss weight factor')
-# parser.add_argument('--self_attn_loss_weight', default=100, type=int, help='self attention loss weight factor')
-
-# LFSA
-# parser.add_argument('--guidance', default=2.5, type=float, help='guidance scale of diffusion models')
-# parser.add_argument('--attack_loss_weight', default=10, type=int, help='attack loss weight factor')# 1
-# parser.add_argument('--cross_attn_loss_weight', default=20000, type=int, help='cross attention loss weight factor')
-# parser.add_argument('--self_attn_loss_weight', default=500, type=int, help='self attention loss weight factor')
 
 
 parser.add_argument('--guidance', default=2.5, type=float, help='guidance scale of diffusion models')
@@ -211,7 +181,7 @@ if __name__ == "__main__":
 
 
     for ind, image_path in enumerate(all_images):
-        print(f"处理第{ind}个图片。。。。。。")
+        print(f"processing {ind} images...")
         tmp_image = Image.open(image_path).convert('RGB')
         tmp_image.save(os.path.join(save_dir, str(ind).rjust(4, '0') + "_originImage.png"))
 
